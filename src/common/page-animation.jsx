@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const AnimationWrapper = ({
   children,
   keyValue,
-  initial = { opacity: 0 },
+  initial = { opacity: 0.5 },
   animate = { opacity: 1 },
   transition = { duration: 0.5},
   className,
@@ -15,6 +15,8 @@ const AnimationWrapper = ({
         key={keyValue}
         initial={initial}
         animate={animate}
+        // initial={{ y: 15 }}
+        // animate={{ y: 0 }}
         transition={transition}
         className={className}
       >
