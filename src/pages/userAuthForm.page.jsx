@@ -4,11 +4,18 @@ import googleIcon from "../imgs/google.png";
 import { Link } from "react-router-dom";
 import AnimationWrapper from "../common/page-animation";
 import { useState } from "react";
-import { signin } from "../services/authService";
-
-
+import { signin ,signup} from "../services/authService";
+import { useContext } from "react";
+import { SessionContext, storeSession ,getSession} from "../common/session";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 const UserAuthForm = ({ type }) => {
   const [formData, setFormData] = useState({
+    fullname: "",
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState({
     fullname: "",
     email: "",
     password: "",
@@ -18,27 +25,93 @@ const UserAuthForm = ({ type }) => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+
+    setErrors((prev) => ({
+      ...prev,
+      [e.target.name]: "",
+    }));
   };
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const { setUserAuth } = useContext(SessionContext);
 
-  console.log(formData,"This is form data")
-   try {
-    const response = await signin({
-      email: "dilshan@gmail.com",
-      password: "Sdilshan919",
-    });
+const navigate = useNavigate();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    console.log("Response:", response);
-  } catch (error) {
-    console.error(error.response?.data || error);
+  const newErrors = {};
+
+  // Full name validation (Sign Up only)
+  if (type === "sign-up") {
+    if (!formData.fullname.trim()) {
+      newErrors.fullname = "Please enter your full name.";
+    } else if (formData.fullname.trim().length < 3) {
+      newErrors.fullname =
+        "Full name must be at least 3 characters long.";
+    }
   }
-  };
+
+  // Email validation
+  if (!formData.email.trim()) {
+    newErrors.email = "Please enter your email address.";
+  } else if (
+    !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)
+  ) {
+    newErrors.email = "Please enter a valid email address.";
+  }
+
+  // Password validation
+  if (!formData.password) {
+    newErrors.password = "Please enter your password.";
+  } else if (type === "sign-up") {
+    if (formData.password.length < 6 || formData.password.length > 20) {
+      newErrors.password =
+        "Password must be between 6 and 20 characters long.";
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password =
+        "Password must contain at least one uppercase letter.";
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password =
+        "Password must contain at least one lowercase letter.";
+    } else if (!/\d/.test(formData.password)) {
+      newErrors.password =
+        "Password must contain at least one number.";
+    }
+  }
+
+  setErrors(newErrors);
+
+  if (Object.keys(newErrors).length > 0) return;
+
+try {
+  const response =
+    type === "sign-up"
+      ? await signup(formData)
+      : await signin({
+          email: formData.email,
+          password: formData.password,
+        });
+
+  // Save session
+  storeSession(response.accessToken, response.user);
+
+  // Update Context
+  setUserAuth(getSession());
+
+  toast.success(response.message);
+
+  navigate("/");
+} catch (error) {
+  toast.error(
+    error.response?.data?.message ||
+      "Something went wrong. Please try again."
+  );
+}
+};
   return (
     <AnimationWrapper keyValue={type}>
       <section className="h-cover flex items-center justify-center">
-        <form className="w-[80%] max-w-[400px]"
-          onSubmit={handleSubmit}>
+        <form className="w-[80%] max-w-[400px]" onSubmit={handleSubmit} 
+        //noValidate
+        >
           <h1 className="text-4xl font-gelasio capitalize text-center mb-24">
             {type === "sign-in" ? "welcome back" : "join us today"}
           </h1>
@@ -50,6 +123,7 @@ const UserAuthForm = ({ type }) => {
               icon="fi-rs-user"
               value={formData.fullname}
               onChange={handleChange}
+              error={errors.fullname}
             />
           ) : (
             ""
@@ -61,6 +135,7 @@ const UserAuthForm = ({ type }) => {
             icon="fi-rr-envelope"
             value={formData.email}
             onChange={handleChange}
+            error={errors.email}
           />
           <InputBox
             name="password"
@@ -69,11 +144,9 @@ const UserAuthForm = ({ type }) => {
             icon="fi-rr-key"
             value={formData.password}
             onChange={handleChange}
+            error={errors.password}
           />
-          <button
-            className="btn-dark center mt-14"
-            type="submit"
-          >
+          <button className="btn-dark center mt-14" type="submit">
             {type.replace("-", " ")}
           </button>
           <div

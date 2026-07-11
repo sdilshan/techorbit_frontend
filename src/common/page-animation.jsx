@@ -6,7 +6,7 @@ const AnimationWrapper = ({
   keyValue,
   initial = { opacity: 0.5 },
   animate = { opacity: 1 },
-  transition = { duration: 0.5},
+  transition = { duration: 1},
   className,
 }) => {
   return (
