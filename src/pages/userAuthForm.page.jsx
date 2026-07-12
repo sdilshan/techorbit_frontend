@@ -4,11 +4,14 @@ import googleIcon from "../imgs/google.png";
 import { Link } from "react-router-dom";
 import AnimationWrapper from "../common/page-animation";
 import { useState } from "react";
-import { signin ,signup} from "../services/authService";
+import { signin, signup } from "../services/authService";
 import { useContext } from "react";
-import { SessionContext, storeSession ,getSession} from "../common/session";
+import { SessionContext, storeSession, getSession } from "../common/session";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../common/firebase";
+import { googleSignin } from "../services/authService";
 const UserAuthForm = ({ type }) => {
   const [formData, setFormData] = useState({
     fullname: "",
@@ -31,86 +34,131 @@ const UserAuthForm = ({ type }) => {
       [e.target.name]: "",
     }));
   };
-const { setUserAuth } = useContext(SessionContext);
+  const { setUserAuth } = useContext(SessionContext);
 
-const navigate = useNavigate();
- const handleSubmit = async (e) => {
-  e.preventDefault();
+  const navigate = useNavigate();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const newErrors = {};
+    const newErrors = {};
 
-  // Full name validation (Sign Up only)
-  if (type === "sign-up") {
-    if (!formData.fullname.trim()) {
-      newErrors.fullname = "Please enter your full name.";
-    } else if (formData.fullname.trim().length < 3) {
-      newErrors.fullname =
-        "Full name must be at least 3 characters long.";
+    // Full name validation (Sign Up only)
+    if (type === "sign-up") {
+      if (!formData.fullname.trim()) {
+        newErrors.fullname = "Please enter your full name.";
+      } else if (formData.fullname.trim().length < 3) {
+        newErrors.fullname = "Full name must be at least 3 characters long.";
+      }
     }
-  }
 
-  // Email validation
-  if (!formData.email.trim()) {
-    newErrors.email = "Please enter your email address.";
-  } else if (
-    !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)
-  ) {
-    newErrors.email = "Please enter a valid email address.";
-  }
-
-  // Password validation
-  if (!formData.password) {
-    newErrors.password = "Please enter your password.";
-  } else if (type === "sign-up") {
-    if (formData.password.length < 6 || formData.password.length > 20) {
-      newErrors.password =
-        "Password must be between 6 and 20 characters long.";
-    } else if (!/[A-Z]/.test(formData.password)) {
-      newErrors.password =
-        "Password must contain at least one uppercase letter.";
-    } else if (!/[a-z]/.test(formData.password)) {
-      newErrors.password =
-        "Password must contain at least one lowercase letter.";
-    } else if (!/\d/.test(formData.password)) {
-      newErrors.password =
-        "Password must contain at least one number.";
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = "Please enter your email address.";
+    } else if (
+      !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)
+    ) {
+      newErrors.email = "Please enter a valid email address.";
     }
-  }
 
-  setErrors(newErrors);
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Please enter your password.";
+    } else if (type === "sign-up") {
+      if (formData.password.length < 6 || formData.password.length > 20) {
+        newErrors.password =
+          "Password must be between 6 and 20 characters long.";
+      } else if (!/[A-Z]/.test(formData.password)) {
+        newErrors.password =
+          "Password must contain at least one uppercase letter.";
+      } else if (!/[a-z]/.test(formData.password)) {
+        newErrors.password =
+          "Password must contain at least one lowercase letter.";
+      } else if (!/\d/.test(formData.password)) {
+        newErrors.password = "Password must contain at least one number.";
+      }
+    }
 
-  if (Object.keys(newErrors).length > 0) return;
+    setErrors(newErrors);
 
-try {
-  const response =
-    type === "sign-up"
-      ? await signup(formData)
-      : await signin({
-          email: formData.email,
-          password: formData.password,
-        });
+    if (Object.keys(newErrors).length > 0) return;
 
-  // Save session
-  storeSession(response.accessToken, response.user);
+    try {
+      const response =
+        type === "sign-up"
+          ? await signup(formData)
+          : await signin({
+              email: formData.email,
+              password: formData.password,
+            });
 
-  // Update Context
-  setUserAuth(getSession());
+      // Save session
+      storeSession(response.accessToken, response.user);
 
-  toast.success(response.message);
+      // Update Context
+      setUserAuth(getSession());
 
-  navigate("/");
-} catch (error) {
-  toast.error(
-    error.response?.data?.message ||
-      "Something went wrong. Please try again."
-  );
-}
-};
+      toast.success(response.message);
+
+      navigate("/");
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message ||
+          "Something went wrong. Please try again.",
+      );
+    }
+  };
+  const handleGoogleLogin = async () => {
+    try {
+      // Open Google Sign-In popup
+      const result = await signInWithPopup(auth, provider);
+
+      // Get Firebase ID Token
+      const token = await result.user.getIdToken();
+
+      // Send token to your backend
+      const response = await googleSignin(token);
+
+      // Save session in localStorage
+      storeSession(response.accessToken, response.user);
+
+      // Update React Context
+      setUserAuth(getSession());
+
+      // Success message
+      toast.success(response.message);
+
+      // Redirect to home page
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+
+      if (
+        error.code === "auth/popup-closed-by-user" ||
+        error.code === "auth/cancelled-popup-request"
+      ) {
+        return;
+      }
+
+      if (error.code === "auth/popup-blocked") {
+        toast.error("Popup was blocked. Please allow popups and try again.");
+        return;
+      }
+
+      // All other errors
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Google Sign-In failed.",
+      );
+    }
+  };
   return (
     <AnimationWrapper keyValue={type}>
       <section className="h-cover flex items-center justify-center">
-        <form className="w-[80%] max-w-[400px]" onSubmit={handleSubmit} 
-        //noValidate
+        <form
+          className="w-[80%] max-w-[400px]"
+          onSubmit={handleSubmit}
+          //noValidate
         >
           <h1 className="text-4xl font-gelasio capitalize text-center mb-24">
             {type === "sign-in" ? "welcome back" : "join us today"}
@@ -161,6 +209,8 @@ try {
           <button
             className="btn-dark flex items-center justify-center
                 gap-4 w-[90%] center"
+            type="button"
+            onClick={handleGoogleLogin}
           >
             <img src={googleIcon} className="w-5" />
             continue with google

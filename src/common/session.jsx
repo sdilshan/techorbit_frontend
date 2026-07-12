@@ -18,6 +18,10 @@ export const getSession = () => ({
   user: JSON.parse(localStorage.getItem("user")),
 });
 
+export const logoutUser = (setUserAuth) => {
+  clearSession();
+  setUserAuth(getSession());
+};
 const SessionProvider = ({ children }) => {
   const [userAuth, setUserAuth] = useState(getSession);
 
