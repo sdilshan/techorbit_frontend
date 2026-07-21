@@ -3,6 +3,7 @@ import Navbar from "./components/navbar.component";
 import UserAuthForm from "./pages/userAuthForm.page";
 import { Toaster } from "react-hot-toast";
 import PublicRoute from "./routes/PublicRoute";
+import Editor from "./pages/editor.pages";
 
 const App = () => {
     return (
@@ -12,9 +13,10 @@ const App = () => {
         reverseOrder={false}
       />
        < Routes>
+       <Route path="/editor" element={<Editor/>}/>
        <Route path="/" element={<Navbar/>}>
-       <Route path="signin" element={<PublicRoute><UserAuthForm type="sign-in"/></PublicRoute>}/>
-       <Route path="signup" element={<PublicRoute><UserAuthForm type="sign-up"/></PublicRoute>}/>
+            <Route path="signin" element={<PublicRoute><UserAuthForm type="sign-in"/></PublicRoute>}/>
+            <Route path="signup" element={<PublicRoute><UserAuthForm type="sign-up"/></PublicRoute>}/>
        </Route>
        </Routes>
        </>
