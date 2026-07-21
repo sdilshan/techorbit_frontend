@@ -7,12 +7,14 @@ import SessionProvider from "./common/session";
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode> 
+ // <React.StrictMode> 
     <BrowserRouter>
     <SessionProvider>
      <App />
      </SessionProvider>
      </BrowserRouter>
    
-  </React.StrictMode>,
+  //</React.StrictMode>,
 )
+
+//Temporary commented development
