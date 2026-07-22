@@ -10,6 +10,15 @@
         @apply m-0 p-0 box-border text-base outline-purple/30 duration-100;
     }
 
+.tag-cross::before {
+  color: inherit;
+  font-size: 10px;
+  transition: color 0.2s;
+}
+
+.tag-cross:hover::before {
+  color: #ef4444; /* Tailwind red-500 */
+}
     html{
         @apply overflow-x-hidden;
     }

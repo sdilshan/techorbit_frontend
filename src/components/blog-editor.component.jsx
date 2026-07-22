@@ -9,14 +9,14 @@ import { useEffect, useRef } from "react";
 import EditorJS from "@editorjs/editorjs";
 import { tools } from "./tools.component";
 const BlogEditor = () => {
-  const { blog, setBlog,setActiveTab } = useBlog();
+  const { blog, setBlog, setActiveTab } = useBlog();
   const editorRef = useRef(null);
+  const initialContent = useRef(blog.content || { blocks: [] });
+
   useEffect(() => {
     editorRef.current = new EditorJS({
       holder: "textEditor",
-      data: {
-        blocks: [],
-      },
+      data: initialContent.current,
       tools,
       placeholder: "Let's start your story",
     });
@@ -26,6 +26,7 @@ const BlogEditor = () => {
       editorRef.current = null;
     };
   }, []);
+
   const handleBannerUpload = async (e) => {
     const file = e.target.files[0];
 
@@ -80,13 +81,11 @@ const BlogEditor = () => {
         content,
       }));
 
-      setActiveTab("publish")
+      setActiveTab("publish");
       console.log({
         ...blog,
         content,
       });
-
-      toast.success("Blog is ready to publish!");
 
       // Navigate to publish page or send to API here
     } catch (error) {
